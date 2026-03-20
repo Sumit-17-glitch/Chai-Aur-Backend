@@ -1,0 +1,14 @@
+{
+  "name": "stream-hub",
+  "version": "1.0.0",
+  "description": "A backend for video streaming platform",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Sumit Kumbhar",
+  "license": "ISC",
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
