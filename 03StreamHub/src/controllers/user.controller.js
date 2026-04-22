@@ -3,6 +3,7 @@ import ApiError from "../utils/apiError.js";
 import { User } from "../models/user.model.js";
 import { uploadFileToCloudinary } from "../utils/cloudinary.js";
 import { apiResponse } from "../utils/apiResponse.js";
+import jwt from "jsonwebtoken";
 
 const generateRefreshAndAccessTokens = async (userId) => {
   try {
@@ -164,14 +165,12 @@ const loginUser = asyncHandler(async (req, res) => {
         "User logged in successfully",
       ),
     );
-    
 });
 
 const logoutUser = asyncHandler(async (req, res) => {
-  
   const user = await User.findById(req.user._id);
   user.refreshtoken = undefined;
-  user.save({validateBeforeSave:false});
+  user.save({ validateBeforeSave: false });
 
   const options = {
     httpOnly: true,
@@ -183,7 +182,42 @@ const logoutUser = asyncHandler(async (req, res) => {
     .clearCookie("accessToken", options)
     .clearCookie("refreshToken", options)
     .json(new apiResponse(200, {}, "User Logged out succesfully"));
-
 });
 
-export { registerUser, loginUser, logoutUser };
+const refreshAccessToken = asyncHandler(async (req, res) => {
+  const incomingRefreshToken = req.cookie.refreshToken || req.body.refreshToken;
+  if (!incomingRefreshToken) {
+    throw new ApiError(401, "Unauthorised request");
+  }
+
+  const decodedRefreshToken = jwt.verify(
+    incomingRefreshToken,
+    process.env.REFRESH_TOKEN_SECRET,
+  );
+
+  const user = await User.findById(decodedRefreshToken?._id);
+  if (!user) {
+    throw new ApiError(401, "Invalid Refresh token");
+  }
+
+  if (incomingRefreshToken !== user?.refreshtoken) {
+    throw new ApiError(401, "Invalid Refresh token or expired");
+  }
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+
+  const { refreshToken, accessToken } = await generateRefreshAndAccessTokens(
+    user._id,
+  );
+
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(new apiResponse(201, {accessToken, refreshToken}, "accessToken refreshed successfully"));
+});
+
+export { registerUser, loginUser, logoutUser, refreshAccessToken };
