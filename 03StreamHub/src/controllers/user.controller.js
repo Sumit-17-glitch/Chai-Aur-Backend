@@ -4,6 +4,7 @@ import { User } from "../models/user.model.js";
 import { uploadFileToCloudinary } from "../utils/cloudinary.js";
 import { apiResponse } from "../utils/apiResponse.js";
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 
 const generateRefreshAndAccessTokens = async (userId) => {
   try {
@@ -32,7 +33,6 @@ const generateRefreshAndAccessTokens = async (userId) => {
 const registerUser = asyncHandler(async (req, res) => {
   //get user data from frontend
   const { userName, email, fullName, password } = req.body;
-  console.log("Body's content", req.body);
 
   //validtaion - not empty
   if (
@@ -118,7 +118,11 @@ const loginUser = asyncHandler(async (req, res) => {
 
   // username or password
   if (!email && !userName) {
-    throw new ApiError(400, "email or password required");
+    throw new ApiError(400, "email or username required");
+  }
+
+  if(!password){
+    throw new ApiError(400, "password is required");
   }
   //find user
   const user = await User.findOne({
@@ -185,7 +189,8 @@ const logoutUser = asyncHandler(async (req, res) => {
 });
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
-  const incomingRefreshToken = req.cookie.refreshToken || req.body.refreshToken;
+  
+  const incomingRefreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
   if (!incomingRefreshToken) {
     throw new ApiError(401, "Unauthorised request");
   }
@@ -248,21 +253,23 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
 });
 
 const getCurrentUser = asyncHandler(async (req, res) => {
-  user = req.user;
+  const user = req.user;
   return res
     .status(200)
-    .json(new apiResponse(200, { user }, "getCurrentUser successful"));
+    .json(new apiResponse(200,  user , "getCurrentUser successful"));
 });
 
 const updateAccountDetails = asyncHandler(async (req, res) => {
-  const { fullName, email } = req.bady;
+  console.log("req.body", req.body);
+  
+  const { fullName, email } = req.body;
 
-  if (!fullName || !email) {
+  if (!fullName && !email) {
     throw new ApiError(400, "Required all fields");
   }
 
   const user =
-    (await User.findByIdAndUpdate(
+    await User.findByIdAndUpdate(
       req.user?._id,
       {
         $set: {
@@ -271,7 +278,7 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
         },
       },
       { new: true },
-    )) / select("-password");
+    ).select("-password");
 
   return res
     .status(200)
@@ -286,7 +293,11 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
 
   const cloudinaryUrlForAvatar =
     await uploadFileToCloudinary(localPathforAvatar);
-  if (!cloudinaryUrlForAvatar.url) {
+
+  console.log("cloudinaryUrlForAvatar: ", cloudinaryUrlForAvatar);
+    
+  
+  if (!cloudinaryUrlForAvatar) {
     throw new ApiError(500, "upload to cloudinary failed");
   }
 
@@ -298,7 +309,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
       },
     },
     { new: true },
-  ).select("-password");
+  ).select("-password -refreshtoken");
 
   return res
     .status(200)
@@ -314,7 +325,7 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
   const cloudinaryUrlForCoverImage = await uploadFileToCloudinary(
     localPathforCoverImage,
   );
-  if (!cloudinaryUrlForCoverImage.url) {
+  if (!cloudinaryUrlForCoverImage) {
     throw new ApiError(500, "upload to cloudinary failed");
   }
 
@@ -326,15 +337,18 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
       },
     },
     { new: true },
-  ).select("-password");
+  ).select("-password -refreshtoken");
 
   return res
     .status(200)
     .json(new apiResponse(200, { user }, "cover image changed successfully"));
 });
 
-const getChannelUserProfile = asyncHandler(async (req, res) => {
+const getUserChannelProfile = asyncHandler(async (req, res) => {
+  console.log("req.params: ", req.params);
+  
   const { userName } = req.params;
+  
   if (!userName?.trim()) {
     throw new ApiError(400, "User name is required");
   }
@@ -348,16 +362,16 @@ const getChannelUserProfile = asyncHandler(async (req, res) => {
     {
       $lookup: {
         from: "subscriptions",
-        localField: "$_id",
-        foreignField: "$channel",
+        localField: "_id",
+        foreignField: "channel",
         as: "subscribers",
       },
     },
     {
       $lookup: {
         from: "subscriptions",
-        localField: "$_id",
-        foreignField: "$subscriber",
+        localField: "_id",
+        foreignField: "subscriber",
         as: "subscribedTo",
       },
     },
@@ -460,6 +474,6 @@ export {
   updateAccountDetails,
   updateUserAvatar,
   updateUserCoverImage,
-  getChannelUserProfile,
+  getUserChannelProfile,
   getUserWatchHistory,
 };

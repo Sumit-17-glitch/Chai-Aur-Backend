@@ -9,7 +9,7 @@ import {
   updateAccountDetails,
   updateUserAvatar,
   updateUserCoverImage,
-  getChannelUserProfile,
+  getUserChannelProfile,
   getUserWatchHistory,
 } from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
@@ -29,22 +29,22 @@ router.route("/register").post(
     },
   ]),
   registerUser,
-);
-router.route("/login").post(loginUser);
-router.route("/logout").post(verifyJWT, logoutUser);
-router.route("/refresh-token").post(refreshAccessToken);
-router.route("/change-password").post(verifyJWT, changeCurrentPassword);
-router.route("/current-user").get(verifyJWT, getCurrentUser); //can be get request
-router.route("/update-details").patch(verifyJWT, updateAccountDetails);
+);  //works just fine😁
+router.route("/login").post(loginUser); //works just fine😁 
+router.route("/logout").post(verifyJWT, logoutUser); //works just fine😁
+router.route("/refresh-access-token").post(refreshAccessToken); //works just fine😁
+router.route("/change-password").post(verifyJWT, changeCurrentPassword); //works just fine😁
+router.route("/current-user").get(verifyJWT, getCurrentUser); //works just fine😁
+router.route("/update-details").patch(verifyJWT, updateAccountDetails); //works just fine😁
 router
   .route("/update-avatar")
-  .patch(verifyJWT, upload.single("avatar"), updateUserAvatar);
+  .patch(verifyJWT, upload.single("avatar"), updateUserAvatar); //works just fine😁
 router
   .route("/update-cover-image")
-  .patch(verifyJWT, upload.single("coverImage"), updateUserCoverImage);
+  .patch(verifyJWT, upload.single("coverImage"), updateUserCoverImage); //works just fine😁
 router
-  .route("/get-user-channel/:username")
-  .get(verifyJWT, getUserChannelProfile);
-router.route("/get-user-watch-history").get(verifyJWT, getUserWatchHistory);
+  .route("/get-user-channel/:userName") //works just fine😁
+  .get(verifyJWT, getUserChannelProfile); 
+router.route("/get-user-watch-history").get(verifyJWT, getUserWatchHistory); //works just fine😁
 
 export default router;
