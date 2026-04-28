@@ -7,7 +7,7 @@ const videoSchema = new Schema(
       type: String,
       required:true,
     },
-    thimbnail: {
+    thumbnail: {
       type: String,
       required:true,
     },
