@@ -87,8 +87,8 @@ const registerUser = asyncHandler(async (req, res) => {
   //create user object
   const user = await User.create({
     fullName,
-    avatar: CloudinaryUrlForAvatar,
-    coverImage: CloudinaryUrlForCoverImage,
+    avatar: CloudinaryUrlForAvatar.secure_url,
+    coverImage: CloudinaryUrlForCoverImage.secure_url,
     email,
     password,
     userName: userName.toLowerCase(),
@@ -305,7 +305,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
     req.user?._id,
     {
       $set: {
-        avatar: cloudinaryUrlForAvatar.url,
+        avatar: cloudinaryUrlForAvatar.secure_url,
       },
     },
     { new: true },
@@ -333,7 +333,7 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
     req.user?._id,
     {
       $set: {
-        coverImage: cloudinaryUrlForCoverImage.url,
+        coverImage: cloudinaryUrlForCoverImage.secure_url,
       },
     },
     { new: true },

@@ -18,7 +18,7 @@ const uploadFileToCloudinary = async (localFilePath) => {
       resource_type: "auto",
     });
     fs.unlinkSync(localFilePath);
-    return response.url || response.secure_url;
+    return response || response;
 
   } catch (error) {
     fs.unlinkSync(localFilePath); // remove the file from local server as the upload operation gto failed
