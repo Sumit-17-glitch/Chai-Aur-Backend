@@ -27,4 +27,26 @@ const uploadFileToCloudinary = async (localFilePath) => {
   }
 };
 
-export { uploadFileToCloudinary };
+const deleteFromCloudinary = async (publicId, resourceType = "image") => {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  });
+  
+  try {
+
+    if (!publicId) return null;
+
+    // delete from cloudinary
+    const response = await cloudinary.uploader.destroy(publicId, {
+      resource_type: resourceType,
+    });
+    return response;
+
+  } catch (error) {
+    return error;
+  }
+}
+
+export { uploadFileToCloudinary, deleteFromCloudinary };

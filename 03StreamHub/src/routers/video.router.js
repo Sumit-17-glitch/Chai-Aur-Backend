@@ -20,6 +20,6 @@ router.route("/publish-video").post(
   publishVideo,
 ); //works just fine😁
 router.route("/get-video/:videoId").get(getVideoById); //works just fine😁
-router.route("/delete-video/:videoId").get( verifyJWT ,deleteVideo);
+router.route("/delete-video/:videoId").delete( verifyJWT ,deleteVideo); //works just fine😁
 
 export default router;

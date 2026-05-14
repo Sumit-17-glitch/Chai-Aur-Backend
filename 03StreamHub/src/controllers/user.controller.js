@@ -33,6 +33,7 @@ const generateRefreshAndAccessTokens = async (userId) => {
 const registerUser = asyncHandler(async (req, res) => {
   //get user data from frontend
   const { userName, email, fullName, password } = req.body;
+  
 
   //validtaion - not empty
   if (
