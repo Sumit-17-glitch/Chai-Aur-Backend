@@ -22,7 +22,7 @@ const uploadFileToCloudinary = async (localFilePath) => {
 
   } catch (error) {
     fs.unlinkSync(localFilePath); // remove the file from local server as the upload operation gto failed
-    return null;
+    return error;
 
   }
 };

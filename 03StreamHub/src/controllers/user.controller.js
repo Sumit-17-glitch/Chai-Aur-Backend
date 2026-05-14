@@ -1,7 +1,7 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import ApiError from "../utils/apiError.js";
 import { User } from "../models/user.model.js";
-import { uploadFileToCloudinary } from "../utils/cloudinary.js";
+import { uploadFileToCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
 import { apiResponse } from "../utils/apiResponse.js";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
@@ -78,18 +78,24 @@ const registerUser = asyncHandler(async (req, res) => {
   }
 
   //upload them on cloudinary
-  const CloudinaryUrlForAvatar = await uploadFileToCloudinary(avatarLocalPath);
-  const CloudinaryUrlForCoverImage =
+  const CloudinaryResponseForAvatar = await uploadFileToCloudinary(avatarLocalPath);
+  const CloudinaryResponseForCoverImage =
     (await uploadFileToCloudinary(coverImageLocalPath)) || "";
-  if (!CloudinaryUrlForAvatar) {
+  if (!CloudinaryResponseForAvatar) {
     throw new ApiError("500", "upload to cloudinary failed");
   }
 
   //create user object
   const user = await User.create({
     fullName,
-    avatar: CloudinaryUrlForAvatar.secure_url,
-    coverImage: CloudinaryUrlForCoverImage.secure_url,
+    avatar: {
+      url: CloudinaryResponseForAvatar.secure_url,
+      publicid: CloudinaryResponseForAvatar.public_id,
+    },
+    coverImage: {
+      url: CloudinaryResponseForCoverImage.secure_url,
+      publicid: CloudinaryResponseForCoverImage.public_id,
+    },
     email,
     password,
     userName: userName.toLowerCase(),
@@ -287,59 +293,88 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
 });
 
 const updateUserAvatar = asyncHandler(async (req, res) => {
+  //get file from request
   const localPathforAvatar = req.file?.path;
   if (!localPathforAvatar) {
     throw new ApiError(400, "required avatar");
   }
 
-  const cloudinaryUrlForAvatar =
-    await uploadFileToCloudinary(localPathforAvatar);
+  //get public id of existing avatar to delete from cloudinary
+  
+  
+  const publicId = req.user?.avatar?.publicid;
+  console.log("publicId", publicId);
+  
+  if (publicId) {
+    await deleteFromCloudinary(publicId);
+  }
 
-  console.log("cloudinaryUrlForAvatar: ", cloudinaryUrlForAvatar);
-    
+  //upload new avatar to cloudinary
+  const cloudinaryUrlForAvatar = await uploadFileToCloudinary(localPathforAvatar);
   
   if (!cloudinaryUrlForAvatar) {
     throw new ApiError(500, "upload to cloudinary failed");
   }
 
+  //update user document in database with new avatar url and public id
   const user = await User.findByIdAndUpdate(
     req.user?._id,
     {
       $set: {
-        avatar: cloudinaryUrlForAvatar.secure_url,
+        avatar: {
+          url: cloudinaryUrlForAvatar.secure_url,
+          publicid: cloudinaryUrlForAvatar.public_id,
+        }
       },
     },
     { new: true },
   ).select("-password -refreshtoken");
 
+  //return response with new avatar url
   return res
     .status(200)
     .json(new apiResponse(200, { user }, "avatar changed successfully"));
 });
 
 const updateUserCoverImage = asyncHandler(async (req, res) => {
+
+  //get file from request
   const localPathforCoverImage = req.file?.path;
   if (!localPathforCoverImage) {
     throw new ApiError(400, "required cover image");
   }
 
-  const cloudinaryUrlForCoverImage = await uploadFileToCloudinary(
+  //get public id of existing cover image to delete from cloudinary
+  const publicId = req.user?.coverImage?.publicid;
+
+  //delete existing cover image from cloudinary
+  if (publicId) {
+    await deleteFromCloudinary(publicId);
+  }
+
+  //upload new cover image to cloudinary
+  const cloudinaryResponseForCoverImage = await uploadFileToCloudinary(
     localPathforCoverImage,
   );
-  if (!cloudinaryUrlForCoverImage) {
+  if (!cloudinaryResponseForCoverImage) {
     throw new ApiError(500, "upload to cloudinary failed");
   }
 
+  //update user document in database with new cover image url and public id
   const user = await User.findByIdAndUpdate(
     req.user?._id,
     {
       $set: {
-        coverImage: cloudinaryUrlForCoverImage.secure_url,
+        coverImage: {
+          url: cloudinaryResponseForCoverImage.secure_url,
+          publicid: cloudinaryResponseForCoverImage.public_id,
+        }
       },
     },
     { new: true },
   ).select("-password -refreshtoken");
 
+  //return response with new cover image url
   return res
     .status(200)
     .json(new apiResponse(200, { user }, "cover image changed successfully"));
