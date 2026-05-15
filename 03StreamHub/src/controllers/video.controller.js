@@ -127,10 +127,23 @@ const getAllVideos = asyncHandler(async (req, res) => {
     page = 1,
     limit = 10,
     query,
-    sortBy = "views",
-    sortType,
+    sortBy = "createdAt",
+    sortType = "desc",
     userId,
   } = req.query;
+
+  const result = await Video.find({
+    owner: userId,
+    isPublished: true,
+    description: {
+      $regex: query,
+      $options: "i",
+    },
+  });
+
+  return res
+    .status(200)
+    .json(new apiResponse(200, result, "videos fetched successfully"));
 });
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
@@ -140,27 +153,30 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
 
   // find the video
   const video = await Video.findById(videoId);
-  
+
   // if does not exists return false
   if (!video) {
     throw new ApiError(401, "Video not found");
   }
 
-  // toggle publish status only if the requester is the owner of the video  
+  // toggle publish status only if the requester is the owner of the video
   if (user._id.toString() === video.owner.toString()) {
     video.isPublished = !video.isPublished;
     await video.save();
-  }
-  else {
+  } else {
     throw new ApiError(401, "unauthorized access");
   }
 
   // return response with new publish status
   return res
-  .status(200)
-  .json(
-    new apiResponse(200, {}, `${video.isPublished ? "published succesfully" : "unpublished succesfully"}`)
-  )
+    .status(200)
+    .json(
+      new apiResponse(
+        200,
+        {},
+        `${video.isPublished ? "published succesfully" : "unpublished succesfully"}`,
+      ),
+    );
 });
 
 export {
