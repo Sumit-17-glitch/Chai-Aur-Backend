@@ -10,14 +10,13 @@ import {
 const publishVideo = asyncHandler(async (req, res) => {
   //get and title, description from request
   const userId = req.user?._id;
-  const { title, description } = req.body;  
+  const { title, description } = req.body;
 
   //get video and thumbnail from request
   const localVideoPath = req.files?.video[0]?.path;
   if (!localVideoPath) {
     throw new ApiError(401, "video required");
   }
-  
 
   const localThumbnailPath = req.files?.thumbnail[0]?.path;
   if (!localThumbnailPath) {
@@ -89,7 +88,7 @@ const deleteVideo = asyncHandler(async (req, res) => {
   if (!video) {
     throw new ApiError(401, "video does not exists");
   }
-  
+
   // get video and thumbnail public id from video document
   const videoPublicId = video.videoFile.publicId;
   const videoResourceType = video.videoFile.resourceType || "video";
@@ -97,12 +96,17 @@ const deleteVideo = asyncHandler(async (req, res) => {
   const thumbnailResourceType = video.thumbnail.resourceType || "image";
 
   // delete video and thumbnail from cloudinary
-  const videoDeletedRespose = await deleteFromCloudinary(videoPublicId, videoResourceType);
-  const thumbnailDeletedRespose = await deleteFromCloudinary(thumbnailPublicId, thumbnailResourceType);
-
+  const videoDeletedRespose = await deleteFromCloudinary(
+    videoPublicId,
+    videoResourceType,
+  );
+  const thumbnailDeletedRespose = await deleteFromCloudinary(
+    thumbnailPublicId,
+    thumbnailResourceType,
+  );
 
   // if video or thumbnail deletion from cloudinary failed return error response
-  if(!videoDeletedRespose || !thumbnailDeletedRespose) {
+  if (!videoDeletedRespose || !thumbnailDeletedRespose) {
     throw new ApiError(500, "video deletion from cloud failed");
   }
 
@@ -118,4 +122,51 @@ const deleteVideo = asyncHandler(async (req, res) => {
     .json(new apiResponse(200, {}, "video deleted succesfully"));
 });
 
-export { publishVideo, getVideoById, deleteVideo };
+const getAllVideos = asyncHandler(async (req, res) => {
+  const {
+    page = 1,
+    limit = 10,
+    query,
+    sortBy = "views",
+    sortType,
+    userId,
+  } = req.query;
+});
+
+const togglePublishStatus = asyncHandler(async (req, res) => {
+  //get video id from request params
+  const { videoId } = req.params;
+  const user = req.user;
+
+  // find the video
+  const video = await Video.findById(videoId);
+  
+  // if does not exists return false
+  if (!video) {
+    throw new ApiError(401, "Video not found");
+  }
+
+  // toggle publish status only if the requester is the owner of the video  
+  if (user._id.toString() === video.owner.toString()) {
+    video.isPublished = !video.isPublished;
+    await video.save();
+  }
+  else {
+    throw new ApiError(401, "unauthorized access");
+  }
+
+  // return response with new publish status
+  return res
+  .status(200)
+  .json(
+    new apiResponse(200, {}, `${video.isPublished ? "published succesfully" : "unpublished succesfully"}`)
+  )
+});
+
+export {
+  publishVideo,
+  getVideoById,
+  deleteVideo,
+  getAllVideos,
+  togglePublishStatus,
+};
